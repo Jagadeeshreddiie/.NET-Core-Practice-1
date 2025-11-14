@@ -4,9 +4,3 @@ var app = builder.Build();
 app.MapGet("/", () => "Hello World!");
 
 app.Run();
-
-// jagadeesh branch
-
-// Jagadeesh branch 2nd commit
-
-// 3rd commit
