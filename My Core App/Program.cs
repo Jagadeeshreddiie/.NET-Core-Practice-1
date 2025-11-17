@@ -9,19 +9,20 @@ var app = builder.Build();                          // Return the Web Applicatio
 
 app.Run( async (HttpContext context) =>
 {
-    var path=context.Request.Path;  
-    if (context.Request.Method == "GET") {
+    var path=context.Request.Path;
+    var method = context.Request.Method;
+    if (method == "GET") {
         if (path == "/")
         {
             await context.Response.WriteAsync(context.Request.Method+"\n");
             await context.Response.WriteAsync(context.Request.Path + "\n");
             await context.Response.WriteAsync(context.Request.Protocol + "\n");
         }
-        else if (path == "/employees")
+        else if (path.StartsWithSegments ("/employees"))
         {
             foreach(var emp in EmployeeRepo.GetEmployees())
             {
-                await context.Response.WriteAsync($"ID: {emp.ID}, Name: {emp.Name}, Position: {emp.Position}, Salary: {emp.Salary}\n");
+                await context.Response.WriteAsync($"\nID: {emp.ID}, Name: {emp.Name}, Position: {emp.Position}, Salary: {emp.Salary}\n");
             }
         }
         else
@@ -30,13 +31,37 @@ app.Run( async (HttpContext context) =>
             await context.Response.WriteAsync("Not Found");
         }
     }
-    else if (context.Request.Method == "POST")
+    else if (method == "POST")
     {
-        if (path == "/employess")
+        if (path.StartsWithSegments("/employess"))
         {
             using var body = new StreamReader(context.Request.Body);
             var employee = JsonSerializer.Deserialize<Employee>(await body.ReadToEndAsync());
             EmployeeRepo.AddEmployee(employee);
+        }
+        else
+        {
+            context.Response.StatusCode = 404;
+            await context.Response.WriteAsync("Not Found");
+        }
+    }
+
+    else if (method == "PUT")
+    {
+        if (path.StartsWithSegments("/employess"))
+        {
+            using var body = new StreamReader(context.Request.Body);
+            var updatedEmployee = JsonSerializer.Deserialize<Employee>(await body.ReadToEndAsync());
+            bool status = EmployeeRepo.UpdateEmployee(updatedEmployee);
+            if (status)
+                await context.Response.WriteAsync("\nEmployee Updated Successfully.");
+            else
+                await context.Response.WriteAsync("\nEmployee not found.");
+        }
+        else
+        {
+            context.Response.StatusCode = 404;
+            await context.Response.WriteAsync("Not Found");
         }
     }
 });
@@ -46,7 +71,6 @@ app.Run();    // runs the web application on infinite loop to receive the HTTP r
 
 
 // Dummy Class of Employees for the GET & POST
-
 
 public static class EmployeeRepo
 {
@@ -65,6 +89,23 @@ public static class EmployeeRepo
         {
             Employees.Add(employe);
         }
+    }
+
+    public static bool UpdateEmployee(Employee ? employee)
+    {
+        if(employee != null)
+        {
+            var Details = Employees.FirstOrDefault(a => a.ID == employee.ID);
+            if (Details != null)
+            {
+                Details.Name= employee.Name;
+                Details.Position= employee.Position;
+                Details.Salary= employee.Salary;
+
+                return true;
+            }
+        }
+        return false;
     }
 }
 public class Employee
