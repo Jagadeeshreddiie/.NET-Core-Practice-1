@@ -12,16 +12,17 @@ app.Run( async (HttpContext context) =>
     var path=context.Request.Path;
     var method = context.Request.Method;
 
-    //if (method == "GET") {
+    //if (method == "GET")
+    //{
     //    if (path == "/")
     //    {
-    //        await context.Response.WriteAsync(context.Request.Method+"\n");
+    //        await context.Response.WriteAsync(context.Request.Method + "\n");
     //        await context.Response.WriteAsync(context.Request.Path + "\n");
     //        await context.Response.WriteAsync(context.Request.Protocol + "\n");
     //    }
-    //    else if (path.StartsWithSegments ("/employees"))
+    //    else if (path.StartsWithSegments("/employees"))
     //    {
-    //        foreach(var emp in EmployeeRepo.GetEmployees())
+    //        foreach (var emp in EmployeeRepo.GetEmployees())
     //        {
     //            await context.Response.WriteAsync($"\nID: {emp.ID}, Name: {emp.Name}, Position: {emp.Position}, Salary: {emp.Salary}\n");
     //        }
@@ -70,11 +71,39 @@ app.Run( async (HttpContext context) =>
 
     // -- Params - Query String Practice --
 
-    await context.Response.WriteAsync(context.Request.QueryString.ToString());
-    foreach(var item in context.Request.Query.Keys)
+    //await context.Response.WriteAsync(context.Request.QueryString.ToString());
+    //foreach(var item in context.Request.Query.Keys)
+    //{
+    //    await context.Response.WriteAsync($"\n{item} : {context.Request.Query[item]}");
+    //}
+
+    if (context.Request.Method == "DELETE")
     {
-        await context.Response.WriteAsync($"\n{item} : {context.Request.Query[item]}");
+        if (context.Request.Path.StartsWithSegments("/Employee/Delete"))
+        {
+            decimal? id =Convert.ToDecimal( context.Request.Query["id"]);
+            if (id!=0)
+            {
+                bool status=EmployeeRepo.DeleteEmployee(id);
+                if (status)
+                {
+                    await context.Response.WriteAsync("Employee Deleted Successfully");
+                }
+                else
+                {
+                    await context.Response.WriteAsync("Employee not found.");
+
+                }
+            }
+            else
+            {
+                context.Response.StatusCode=404;
+                await context.Response.WriteAsync("Invalid Request");
+            }
+        }
     }
+
+
 });
 
 app.Run();    // runs the web application on infinite loop to receive the HTTP requests 
@@ -118,10 +147,25 @@ public static class EmployeeRepo
         }
         return false;
     }
+
+    public static bool DeleteEmployee(decimal? id)
+    {
+        if (id != null)
+        {
+            var employee = Employees.FirstOrDefault(e => e.ID == id);
+        
+            if (employee != null)
+            {
+                Employees.Remove(employee);
+                return true;
+            }
+        }
+        return false;
+    }
 }
 public class Employee
 {
-    public int ID { get; set; }
+    public decimal ID { get; set; }
     public string Name { get; set; }
     public string Position { get; set; }
     public decimal Salary { get; set; }
