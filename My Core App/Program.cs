@@ -91,15 +91,28 @@ app.Run( async (HttpContext context) =>
                 var id =context.Request.Query["id"];
                 if(decimal.TryParse(id,out decimal employeeID))
                 {
-                    bool status = EmployeeRepo.DeleteEmployee(employeeID);
-                    if (status)
+
+                    // Headers concept.
+                    // We should not send all the data in the parameter or query string for security reasons.
+                    // So , we use Headers to send sensitive data like Authorization tokens, API keys, etc.
+                    // Here, we are using a simple Authorization header for demonstration purposes.
+
+                    if (context.Request.Headers["Authorization"] == "admin")
                     {
-                        await context.Response.WriteAsync("Employee Deleted Successfully");
+                        bool status = EmployeeRepo.DeleteEmployee(employeeID);
+                        if (status)
+                        {
+                            await context.Response.WriteAsync("Employee Deleted Successfully");
+                        }
+                        else
+                        {
+                            await context.Response.WriteAsync("Employee not found.");
+                        }
                     }
                     else
                     {
-                        await context.Response.WriteAsync("Employee not found.");
-
+                        context.Response.StatusCode=401;
+                        await context.Response.WriteAsync("You are not Authorized to delete.");
                     }
                 }
             }
