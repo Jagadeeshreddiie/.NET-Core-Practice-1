@@ -11,58 +11,69 @@ app.Run( async (HttpContext context) =>
 {
     var path=context.Request.Path;
     var method = context.Request.Method;
-    if (method == "GET") {
-        if (path == "/")
-        {
-            await context.Response.WriteAsync(context.Request.Method+"\n");
-            await context.Response.WriteAsync(context.Request.Path + "\n");
-            await context.Response.WriteAsync(context.Request.Protocol + "\n");
-        }
-        else if (path.StartsWithSegments ("/employees"))
-        {
-            foreach(var emp in EmployeeRepo.GetEmployees())
-            {
-                await context.Response.WriteAsync($"\nID: {emp.ID}, Name: {emp.Name}, Position: {emp.Position}, Salary: {emp.Salary}\n");
-            }
-        }
-        else
-        {
-            context.Response.StatusCode = 404;
-            await context.Response.WriteAsync("Not Found");
-        }
-    }
-    else if (method == "POST")
-    {
-        if (path.StartsWithSegments("/employess"))
-        {
-            using var body = new StreamReader(context.Request.Body);
-            var employee = JsonSerializer.Deserialize<Employee>(await body.ReadToEndAsync());
-            EmployeeRepo.AddEmployee(employee);
-        }
-        else
-        {
-            context.Response.StatusCode = 404;
-            await context.Response.WriteAsync("Not Found");
-        }
-    }
 
-    else if (method == "PUT")
+    //if (method == "GET") {
+    //    if (path == "/")
+    //    {
+    //        await context.Response.WriteAsync(context.Request.Method+"\n");
+    //        await context.Response.WriteAsync(context.Request.Path + "\n");
+    //        await context.Response.WriteAsync(context.Request.Protocol + "\n");
+    //    }
+    //    else if (path.StartsWithSegments ("/employees"))
+    //    {
+    //        foreach(var emp in EmployeeRepo.GetEmployees())
+    //        {
+    //            await context.Response.WriteAsync($"\nID: {emp.ID}, Name: {emp.Name}, Position: {emp.Position}, Salary: {emp.Salary}\n");
+    //        }
+    //    }
+    //    else
+    //    {
+    //        context.Response.StatusCode = 404;
+    //        await context.Response.WriteAsync("Not Found");
+    //    }
+    //}
+    //else if (method == "POST")
+    //{
+    //    if (path.StartsWithSegments("/employess"))
+    //    {
+    //        using var body = new StreamReader(context.Request.Body);
+    //        var employee = JsonSerializer.Deserialize<Employee>(await body.ReadToEndAsync());
+    //        EmployeeRepo.AddEmployee(employee);
+    //    }
+    //    else
+    //    {
+    //        context.Response.StatusCode = 404;
+    //        await context.Response.WriteAsync("Not Found");
+    //    }
+    //}
+
+    //else if (method == "PUT")
+    //{
+    //    if (path.StartsWithSegments("/employess"))
+    //    {
+    //        using var body = new StreamReader(context.Request.Body);
+    //        var updatedEmployee = JsonSerializer.Deserialize<Employee>(await body.ReadToEndAsync());
+    //        bool status = EmployeeRepo.UpdateEmployee(updatedEmployee);
+    //        if (status)
+    //            await context.Response.WriteAsync("\nEmployee Updated Successfully.");
+    //        else
+    //            await context.Response.WriteAsync("\nEmployee not found.");
+    //    }
+    //    else
+    //    {
+    //        context.Response.StatusCode = 404;
+    //        await context.Response.WriteAsync("Not Found");
+    //    }
+    //}
+
+    // Commented the Above code for the Query String Practice.
+
+    // -- Params - Query String Practice --
+
+    await context.Response.WriteAsync(context.Request.QueryString.ToString());
+    foreach(var item in context.Request.Query.Keys)
     {
-        if (path.StartsWithSegments("/employess"))
-        {
-            using var body = new StreamReader(context.Request.Body);
-            var updatedEmployee = JsonSerializer.Deserialize<Employee>(await body.ReadToEndAsync());
-            bool status = EmployeeRepo.UpdateEmployee(updatedEmployee);
-            if (status)
-                await context.Response.WriteAsync("\nEmployee Updated Successfully.");
-            else
-                await context.Response.WriteAsync("\nEmployee not found.");
-        }
-        else
-        {
-            context.Response.StatusCode = 404;
-            await context.Response.WriteAsync("Not Found");
-        }
+        await context.Response.WriteAsync($"\n{item} : {context.Request.Query[item]}");
     }
 });
 
