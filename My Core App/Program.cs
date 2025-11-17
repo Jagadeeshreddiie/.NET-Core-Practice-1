@@ -84,18 +84,21 @@ app.Run( async (HttpContext context) =>
     {
         if (context.Request.Path.StartsWithSegments("/Employee/Delete"))
         {
-            decimal? id =Convert.ToDecimal( context.Request.Query["id"]);
-            if (id!=0)
+            if (context.Request.Query.ContainsKey("id"))
             {
-                bool status=EmployeeRepo.DeleteEmployee(id);
-                if (status)
+                var id =context.Request.Query["id"];
+                if(decimal.TryParse(id,out decimal employeeID))
                 {
-                    await context.Response.WriteAsync("Employee Deleted Successfully");
-                }
-                else
-                {
-                    await context.Response.WriteAsync("Employee not found.");
+                    bool status = EmployeeRepo.DeleteEmployee(employeeID);
+                    if (status)
+                    {
+                        await context.Response.WriteAsync("Employee Deleted Successfully");
+                    }
+                    else
+                    {
+                        await context.Response.WriteAsync("Employee not found.");
 
+                    }
                 }
             }
             else
@@ -151,17 +154,13 @@ public static class EmployeeRepo
         return false;
     }
 
-    public static bool DeleteEmployee(decimal? id)
+    public static bool DeleteEmployee(decimal id)
     {
-        if (id != null)
+        var employee = Employees.FirstOrDefault(e => e.ID == id);
+        if (employee != null)
         {
-            var employee = Employees.FirstOrDefault(e => e.ID == id);
-        
-            if (employee != null)
-            {
-                Employees.Remove(employee);
-                return true;
-            }
+            Employees.Remove(employee);
+            return true;
         }
         return false;
     }
