@@ -77,6 +77,9 @@ app.Run( async (HttpContext context) =>
     //    await context.Response.WriteAsync($"\n{item} : {context.Request.Query[item]}");
     //}
 
+
+    // DELETE Req Practice
+
     if (context.Request.Method == "DELETE")
     {
         if (context.Request.Path.StartsWithSegments("/Employee/Delete"))
