@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Linq.Expressions;
+using System.Reflection.Metadata;
 using System.Text.Json;
 using static EmployeeRepo;
 
@@ -7,121 +10,125 @@ var app = builder.Build();                          // Return the Web Applicatio
 //app.MapGet("/", () => "value Hiii" );     // Middleware Component (one of)      -- Minimal API Type
 
 
-app.Run( async (HttpContext context) =>
+app.Run(async (HttpContext context) =>
 {
-    var path=context.Request.Path;
+    var path = context.Request.Path;
     var method = context.Request.Method;
 
-    if (method == "GET")
+    // Refactoring Routes -- In .NET Core, first the context will check about the Endpoint Handler, then the METHOD
+
+    if (path == "/")
     {
-        if (path == "/")
-        {
-            await context.Response.WriteAsync(context.Request.Method + "\n");
-            await context.Response.WriteAsync(context.Request.Path + "\n");
-            await context.Response.WriteAsync(context.Request.Protocol + "\n");
-        }
-        else if (path.StartsWithSegments("/employees"))
+        await context.Response.WriteAsync(context.Request.Method + "\n");
+        await context.Response.WriteAsync(context.Request.Path + "\n");
+        await context.Response.WriteAsync(context.Request.Protocol + "\n");
+    }
+    else if (path.StartsWithSegments("/employees"))
+    {
+        if (method == "GET")
         {
             foreach (var emp in EmployeeRepo.GetEmployees())
             {
                 await context.Response.WriteAsync($"\nID: {emp.ID}, Name: {emp.Name}, Position: {emp.Position}, Salary: {emp.Salary}\n");
             }
         }
-        else
+        else if (method == "POST")
         {
-            context.Response.StatusCode = 404;
-            await context.Response.WriteAsync("Not Found");
-        }
-    }
-    else if (method == "POST")
-    {
-        if (path.StartsWithSegments("/employess"))
-        {
-            using var body = new StreamReader(context.Request.Body);
-            var employee = JsonSerializer.Deserialize<Employee>(await body.ReadToEndAsync());
-            EmployeeRepo.AddEmployee(employee);
-        }
-        else
-        {
-            context.Response.StatusCode = 404;
-            await context.Response.WriteAsync("Not Found");
-        }
-    }
-
-    else if (method == "PUT")
-    {
-        if (path.StartsWithSegments("/employess"))
-        {
-            using var body = new StreamReader(context.Request.Body);
-            var updatedEmployee = JsonSerializer.Deserialize<Employee>(await body.ReadToEndAsync());
-            bool status = EmployeeRepo.UpdateEmployee(updatedEmployee);
-            if (status)
-                await context.Response.WriteAsync("\nEmployee Updated Successfully.");
-            else
-                await context.Response.WriteAsync("\nEmployee not found.");
-        }
-        else
-        {
-            context.Response.StatusCode = 404;
-            await context.Response.WriteAsync("Not Found");
-        }
-    }
-
-    //Commented the Above code for the Query String Practice.
-
-
-    //-- Params - Query String Practice--
-
-
-   //await context.Response.WriteAsync(context.Request.QueryString.ToString());
-   // foreach (var item in context.Request.Query.Keys)
-   //     {
-   //         await context.Response.WriteAsync($"\n{item} : {context.Request.Query[item]}");
-   //     }
-
-
-    // DELETE Req Practice
-
-    else if (context.Request.Method == "DELETE")
-    {
-        if (context.Request.Path.StartsWithSegments("/Employee/Delete"))
-        {
-            if (context.Request.Query.ContainsKey("id"))
+            try
             {
-                var id =context.Request.Query["id"];
-                if(decimal.TryParse(id,out decimal employeeID))
+                using var body = new StreamReader(context.Request.Body);
+                var employee = JsonSerializer.Deserialize<Employee>(await body.ReadToEndAsync());
+                EmployeeRepo.AddEmployee(employee);
+                await context.Response.WriteAsync("\nEmployee Added Successfully.");
+            }
+            catch (Exception ex)
+            {
+                context.Response.StatusCode = 500;
+                await context.Response.WriteAsync(ex.Message);
+            }
+        }
+        else if (method == "PUT")
+        {
+            try
+            {
+                using var body = new StreamReader(context.Request.Body);
+                var updatedEmployee = JsonSerializer.Deserialize<Employee>(await body.ReadToEndAsync());
+                bool status = EmployeeRepo.UpdateEmployee(updatedEmployee);
+                if (status)
+                    await context.Response.WriteAsync("\nEmployee Updated Successfully.");
+                else
+                    await context.Response.WriteAsync("\nEmployee not found.");
+            }
+            catch (Exception ex)
+            {
+                context.Response.StatusCode = 500;
+                await context.Response.WriteAsync(ex.Message);
+            }
+        }
+
+        //Commented the Above code for the Query String Practice.
+
+
+        //-- Params - Query String Practice--
+
+
+        //await context.Response.WriteAsync(context.Request.QueryString.ToString());
+        // foreach (var item in context.Request.Query.Keys)
+        //     {
+        //         await context.Response.WriteAsync($"\n{item} : {context.Request.Query[item]}");
+        //     }
+
+
+        // DELETE Req Practice
+
+        else if (context.Request.Method == "DELETE")
+        {
+            try
+            {
+
+                if (context.Request.Query.ContainsKey("id"))
                 {
-
-                    // Headers concept.
-                    // We should not send all the data in the parameter or query string for security reasons.
-                    // So , we use Headers to send sensitive data like Authorization tokens, API keys, etc.
-                    // Here, we are using a simple Authorization header for demonstration purposes.
-
-                    if (context.Request.Headers["Authorization"] == "admin")
+                    var id = context.Request.Query["id"];
+                    if (decimal.TryParse(id, out decimal employeeID))
                     {
-                        bool status = EmployeeRepo.DeleteEmployee(employeeID);
-                        if (status)
+
+                        // Headers concept.
+                        // We should not send all the data in the parameter or query string for security reasons.
+                        // So , we use Headers to send sensitive data like Authorization tokens, API keys, etc.
+                        // Here, we are using a simple Authorization header for demonstration purposes.
+
+                        if (context.Request.Headers["Authorization"] == "admin")
                         {
-                            await context.Response.WriteAsync("Employee Deleted Successfully");
+                            bool status = EmployeeRepo.DeleteEmployee(employeeID);
+                            if (status)
+                            {
+                                await context.Response.WriteAsync("Employee Deleted Successfully");
+                            }
+                            else
+                            {
+                                await context.Response.WriteAsync("Employee not found.");
+                            }
                         }
                         else
                         {
-                            await context.Response.WriteAsync("Employee not found.");
+                            context.Response.StatusCode = 401;
+                            await context.Response.WriteAsync("You are not Authorized to delete.");
                         }
-                    }
-                    else
-                    {
-                        context.Response.StatusCode=401;
-                        await context.Response.WriteAsync("You are not Authorized to delete.");
                     }
                 }
             }
-            else
+            catch (Exception ex)
             {
-                context.Response.StatusCode=404;
-                await context.Response.WriteAsync("Invalid Request");
+                context.Response.StatusCode = 500;
+                await context.Response.WriteAsync(ex.Message);
+
             }
         }
+    }
+    else
+    {
+        context.Response.StatusCode = 401;
+        await context.Response.WriteAsync("Invalid Endpoint");
     }
 });
 
@@ -150,16 +157,16 @@ public static class EmployeeRepo
         }
     }
 
-    public static bool UpdateEmployee(Employee ? employee)
+    public static bool UpdateEmployee(Employee? employee)
     {
-        if(employee != null)
+        if (employee != null)
         {
             var Details = Employees.FirstOrDefault(a => a.ID == employee.ID);
             if (Details != null)
             {
-                Details.Name= employee.Name;
-                Details.Position= employee.Position;
-                Details.Salary= employee.Salary;
+                Details.Name = employee.Name;
+                Details.Position = employee.Position;
+                Details.Salary = employee.Salary;
 
                 return true;
             }
